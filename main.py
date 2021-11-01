@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
         # TODO GUI
-        App = GraphicalApplication(database, tables, queries)
+        App = GUIApplication(database, tables, queries)
 
     App.run()
 
