@@ -1,4 +1,5 @@
 import pymysql
+import pandas as pd
 
 
 class Database:
@@ -23,7 +24,7 @@ class Database:
             cursor.execute("SELECT * from %s" % (table_name))
             result = cursor.fetchall()
 
-        return result
+        return pd.DataFrame(result)
 
     def execute(self, query, args=None):
 
@@ -32,4 +33,4 @@ class Database:
             result = cursor.fetchall()
             self.connection.commit()
 
-        return result
+        return pd.DataFrame(result)

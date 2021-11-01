@@ -1,5 +1,5 @@
-import pandas as pd
 import os
+import pandas as pd
 from db import Database
 
 
@@ -12,12 +12,12 @@ class ConsoleApplication:
         if len(tables) + len(additional_queries.keys()) > len(self.active_keys):
             raise ValueError("Too much values in tables and queries")
 
-        self.entities = tables
+        self.tables = tables
         self.active_keys = [str(i) for i in range(0, 10)] + [chr(ch) for ch in range(ord('a'), ord('z') + 1)]
         self.additional_queries = additional_queries
 
-        self.keys = {self.active_keys[i]: self.entities[i] for i in range(0, len(self.entities))}
-        self.keys.update({self.active_keys[len(self.entities) + i]: q
+        self.keys = {self.active_keys[i]: self.tables[i] for i in range(0, len(self.tables))}
+        self.keys.update({self.active_keys[len(self.tables) + i]: q
                                      for i, q in enumerate(self.additional_queries.keys())})
 
         self.quit_char = "*"
@@ -56,13 +56,12 @@ class ConsoleApplication:
         result = {}
         request = self.keys[key]
 
-        if request in self.entities:
+        if request in self.tables:
             result = self.db.select_all(request)
         elif request in self.additional_queries.keys():
             result = self.db.execute(self.additional_queries[request])
 
-        df = pd.DataFrame(result)
-        print(df)
+        print(result)
 
     def run(self):
 
