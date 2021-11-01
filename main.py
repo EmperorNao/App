@@ -1,9 +1,9 @@
 # This is a sample Python script.
 
 import sys
-from ConsoleApp import ConsoleApplication
+from console import ConsoleApplication
 from config import Config
-from DB import Database
+from db import Database
 
 r"""
 command = 'clear'

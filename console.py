@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from DB import Database
+from db import Database
 
 
 class ConsoleApplication:
