@@ -1,4 +1,3 @@
-# This is a sample Python script.
 
 import sys
 from config import Config
@@ -6,13 +5,6 @@ from db import Database
 from console import ConsoleApplication
 from gui import GUIApplication
 from PyQt5 import QtWidgets
-
-r"""
-command = 'clear'
-    if os.name in ('nt', 'dos'):  # If Machine is running on Windows, use cls
-        command = 'cls'
-    os.system(command)
-"""
 
 
 if __name__ == "__main__":
