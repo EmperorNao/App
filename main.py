@@ -1,9 +1,9 @@
 
 import sys
-from config import Config
-from db import Database
-from console import ConsoleApplication
-from gui import GUIApplication
+from db.config import Config
+from db.db import Database
+from apps.console import ConsoleApplication
+from apps.gui import GUIApplication
 from PyQt5 import QtWidgets
 
 

@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5 import QtCore
 
 import pandas as pd
-from db import Database
+from db.db import Database
 
 
 class GUIApplication(QtWidgets.QMainWindow):
