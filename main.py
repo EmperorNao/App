@@ -37,14 +37,14 @@ if __name__ == "__main__":
                 group by department_id",
 
                "Процент остепенённости преподаваталей по кафедрам": "select department_id as \
-               Номер_кафедры, department.title as 'Кафедра', \
-               (select count(*) from professor where department_id = Номер_кафедры and prof_status != '') \
-               (select count(*) from professor where department_id = Номер_кафедры) \
-               * 100 as 'Процент остепенённых ' from professor \
+               dep_num, department.title as 'Кафедра', \
+               (select count(*) from professor where department_id = dep_num and prof_status != '') / \
+               (select count(*) from professor where department_id = dep_num) \
+               * 100 as 'Процент остепенённых' from professor \
                 inner join department \
                 on professor.department_id = department.id \
                 group by department_id"
-               
+
                }
 
     if len(sys.argv) < 2 or sys.argv[1] == "console":
