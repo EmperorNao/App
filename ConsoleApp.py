@@ -33,13 +33,13 @@ class ConsoleApplication:
 
     def generate_text(self):
 
-        out = ["Нажмите соответствующую клавишу для просмотра содержимого таблицы"]
+        out = ["Нажмите соответствующую клавишу для просмотра содержимого таблицы или запроса"]
         for k, v in self.keys.items():
             out.append(k + ": " + v)
         out.append(self.quit_char + ": " + "Выход")
         return "\n".join(out)
 
-    def run(self):
+    def clear_mode_request(self):
 
         print("Использовать clear-mode? Во время этого режима "
               "консоль будет очищаться после каждого запроса (Y/N)")
@@ -51,6 +51,22 @@ class ConsoleApplication:
         else:
             print("Clear-mode выключен")
 
+    def make_request(self, key):
+
+        result = {}
+        request = self.keys[key]
+
+        if request in self.entities:
+            result = self.db.select_all(request)
+        elif request in self.additional_queries.keys():
+            result = self.db.execute(self.additional_queries[request])
+
+        df = pd.DataFrame(result)
+        print(df)
+
+    def run(self):
+
+        self.clear_mode_request()
         key = ""
         while True:
 
@@ -70,16 +86,7 @@ class ConsoleApplication:
 
             if key in self.keys.keys():
 
-                result = {}
-                request = self.keys[key]
-
-                if request in self.entities:
-                    result = self.db.select_all(request)
-                elif request in self.additional_queries.keys():
-                    result = self.db.execute(self.additional_queries[request])
-
-                df = pd.DataFrame(result)
-                print(df)
+                self.make_request(key)
                 print("Введите Enter для продолжения")
                 input()
 
