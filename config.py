@@ -1,3 +1,5 @@
+
+
 class Config:
 
     def __init__(self, host='localhost', user='root', password='password', db_name=None, filename=None):
