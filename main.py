@@ -1,9 +1,10 @@
 # This is a sample Python script.
 
 import sys
-from console import ConsoleApplication
 from config import Config
 from db import Database
+from console import ConsoleApplication
+from gui import GUIApplication
 
 r"""
 command = 'clear'
@@ -52,7 +53,7 @@ if __name__ == "__main__":
 
     elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
         # TODO GUI
-        pass
+        App = GraphicalApplication(database, tables, queries)
 
     App.run()
 
