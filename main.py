@@ -50,7 +50,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == "console":
         App = ConsoleApplication(database, tables, queries)
 
-    else:
+    elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
         # TODO GUI
         pass
 
