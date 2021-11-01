@@ -53,11 +53,12 @@ if __name__ == "__main__":
         app = ConsoleApplication(database, tables, queries)
         app.run()
 
-    elif len(sys.argv) < 2 or sys.argv[1] == "GUI":
+    elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
 
         app = QtWidgets.QApplication(sys.argv)
         model = GUIApplication(database, tables, queries)
         model.show()
         sys.exit(app.exec_())
 
-
+    else:
+        print("Provide one of arguments:\n'console' - console app\n'GUI' - with graphical interface")
