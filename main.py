@@ -5,6 +5,7 @@ from config import Config
 from db import Database
 from console import ConsoleApplication
 from gui import GUIApplication
+from PyQt5 import QtWidgets
 
 r"""
 command = 'clear'
@@ -48,12 +49,15 @@ if __name__ == "__main__":
 
                }
 
-    if len(sys.argv) < 2 or sys.argv[1] == "console":
-        App = ConsoleApplication(database, tables, queries)
+    if len(sys.argv) > 1 and sys.argv[1] == "console":
+        app = ConsoleApplication(database, tables, queries)
+        app.run()
 
-    elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
-        # TODO GUI
-        App = GUIApplication(database, tables, queries)
+    elif len(sys.argv) < 2 or sys.argv[1] == "GUI":
 
-    App.run()
+        app = QtWidgets.QApplication(sys.argv)
+        model = GUIApplication(database, tables, queries)
+        model.show()
+        sys.exit(app.exec_())
+
 
