@@ -118,14 +118,6 @@ class GUIApplication(QtWidgets.QMainWindow):
 
         if self.current_table:
 
-            # print("row = ", row)
-            # print("col = ", col)
-            # print("changed")
-            # print("text = ", self.table.item(row, col).text())
-            # print("colname = ", self.table.horizontalHeaderItem(col).text())
-            # print("colname id = ", self.table.horizontalHeaderItem(0).text())
-            # print("id = ", self.table.item(row, 0).text())
-
             id_col_name = self.table.horizontalHeaderItem(0).text()
             id_value = self.table.item(row, 0).text()
             col_name = self.table.horizontalHeaderItem(col).text()

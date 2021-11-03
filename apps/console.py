@@ -1,8 +1,6 @@
 import os
-
-import pymysql.err
-
 from db.db import Database
+import pymysql
 
 
 class ConsoleApplication:

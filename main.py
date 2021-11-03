@@ -1,4 +1,3 @@
-
 import sys
 from db.config import Config
 from db.db import Database
@@ -18,10 +17,9 @@ if __name__ == "__main__":
         print("Unable to make a connection to the mysql database with name '%s'" % database_name)
         exit(0)
 
-    tables = ["random table lol", "audience", "class", "department", "grade", "professor", "student", "study_group", "theory_subject"]
+    tables = ["audience", "class", "department", "grade", "professor", "student", "study_group", "theory_subject"]
 
-    queries = {"random": "select table from table lol",
-                "Все студенты и их оценки": "select st.fcs, p.fcs, g.grade_value from grade as g \
+    queries = {"Все студенты и их оценки": "select st.fcs, p.fcs, g.grade_value from grade as g \
                 inner join student as st \
                 on st.id = g.student_id \
                 inner join professor as p \
