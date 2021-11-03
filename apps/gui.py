@@ -1,3 +1,4 @@
+import pymysql.err
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout
@@ -6,6 +7,7 @@ from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5 import QtCore
 
 import pandas as pd
@@ -23,6 +25,7 @@ class GUIApplication(QtWidgets.QMainWindow):
         self.additional_queries = additional_queries
 
         self.keys = self.tables + list(self.additional_queries.keys())
+        self.current_table = None
         # UI part
 
         self.setWindowTitle("University GUI")
@@ -59,13 +62,13 @@ class GUIApplication(QtWidgets.QMainWindow):
     def _init_bottom(self):
 
         self.table = QTableWidget(self)  # Создаём таблицу
+        self.table.cellChanged.connect(self.changed_item)
         self.general_layout.addWidget(self.table)
 
     def make_request(self, button_name):
 
         result = {}
         request = button_name
-
         if request in self.tables:
             result = self.db.select_all(request)
         elif request in self.additional_queries.keys():
@@ -74,6 +77,9 @@ class GUIApplication(QtWidgets.QMainWindow):
         return result
 
     def print_result(self, result: pd.DataFrame):
+
+        # disconnect from table
+        self.table.cellChanged.disconnect(self.changed_item)
 
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
@@ -92,9 +98,65 @@ class GUIApplication(QtWidgets.QMainWindow):
 
         self.table.resizeColumnsToContents()
 
+        # reconnect to table
+        self.table.cellChanged.connect(self.changed_item)
+
     # signal
     def execute_query(self):
 
         button_name = self.queries.currentText()
-        result = self.make_request(button_name)
-        self.print_result(result)
+        try:
+            if button_name in self.tables:
+                self.current_table = button_name
+
+            result = self.make_request(button_name)
+            self.print_result(result)
+        except pymysql.err.ProgrammingError as e:
+            GUIApplication.error("Error while trying to execute query", str(e), "Try select another query")
+
+    def changed_item(self, row, col):
+
+        if self.current_table:
+
+            # print("row = ", row)
+            # print("col = ", col)
+            # print("changed")
+            # print("text = ", self.table.item(row, col).text())
+            # print("colname = ", self.table.horizontalHeaderItem(col).text())
+            # print("colname id = ", self.table.horizontalHeaderItem(0).text())
+            # print("id = ", self.table.item(row, 0).text())
+
+            id_col_name = self.table.horizontalHeaderItem(0).text()
+            id_value = self.table.item(row, 0).text()
+            col_name = self.table.horizontalHeaderItem(col).text()
+            new_value = self.table.item(row, col).text()
+            query = f"UPDATE {self.current_table} SET {col_name} = {new_value} WHERE {id_col_name} = {id_value}"
+            try:
+                self.db.execute(query)
+                result = self.db.select_all(self.current_table)
+                self.print_result(result)
+
+            except pymysql.err.ProgrammingError as e:
+                GUIApplication.error("Error while trying to update table", str(e), "Error")
+
+            except pymysql.err.IntegrityError as e:
+                GUIApplication.error("Error while trying to update table, trouble with foreign keys", str(e), "Error")
+
+            except:
+                GUIApplication.error("Error", "Error", "Error")
+
+    @staticmethod
+    def error(text: str = "", info_text: str = "", title: str = ""):
+        """
+        method to call, when error has happened
+        :param text: short description of error
+        :param info_text: extended error description
+        :param title: window title
+        :return:
+        """
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(text)
+        msg.setInformativeText(info_text)
+        msg.setWindowTitle(title)
+        msg.exec()

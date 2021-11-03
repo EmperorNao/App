@@ -5,15 +5,23 @@ from db.db import Database
 from apps.console import ConsoleApplication
 from apps.gui import GUIApplication
 from PyQt5 import QtWidgets
+import pymysql
 
 
 if __name__ == "__main__":
 
-    config = Config(db_name="university")
-    database = Database(config)
-    tables = ["audience", "class", "department", "grade", "professor", "student", "study_group", "theory_subject"]
+    database_name = "university"
+    try:
+        config = Config(db_name=database_name)
+        database = Database(config)
+    except pymysql.err.OperationalError:
+        print("Unable to make a connection to the mysql database with name '%s'" % database_name)
+        exit(0)
 
-    queries = {"Все студенты и их оценки": "select st.fcs, p.fcs, g.grade_value from grade as g \
+    tables = ["random table lol", "audience", "class", "department", "grade", "professor", "student", "study_group", "theory_subject"]
+
+    queries = {"random": "select table from table lol",
+                "Все студенты и их оценки": "select st.fcs, p.fcs, g.grade_value from grade as g \
                 inner join student as st \
                 on st.id = g.student_id \
                 inner join professor as p \

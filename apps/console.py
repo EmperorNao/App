@@ -1,4 +1,7 @@
 import os
+
+import pymysql.err
+
 from db.db import Database
 
 
@@ -55,10 +58,14 @@ class ConsoleApplication:
         result = {}
         request = self.keys[key]
 
-        if request in self.tables:
-            result = self.db.select_all(request)
-        elif request in self.additional_queries.keys():
-            result = self.db.execute(self.additional_queries[request])
+        try:
+            if request in self.tables:
+                result = self.db.select_all(request)
+            elif request in self.additional_queries.keys():
+                result = self.db.execute(self.additional_queries[request])
+        except pymysql.err.ProgrammingError as e:
+            print("Error while trying make query")
+            return
 
         print(result)
 
