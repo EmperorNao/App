@@ -1,71 +1,69 @@
-import pymysql.err
 from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5 import QtCore
-
-
+from PyQt5.QtWidgets import QListWidget
+from PyQt5.QtWidgets import QListWidgetItem
 from db.db import Database
-
 from sqlalchemy import create_engine
 
 
-class ORMUniversityApplication(QtWidgets.QMainWindow):
+
+class ORMApplication(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
 
         # model part
-        self.engine = create_engine("mysql://root:password@localhost::3306/university", echo=True, future=True)
+        self.engine = create_engine("mysql+pymysql://root:password@localhost:3306/university", echo=True, future=True)
 
-        self.tables = tables
-        self.additional_queries = additional_queries
-
-        self.keys = self.tables + list(self.additional_queries.keys())
-        self.current_table = None
         # UI part
 
         self.setWindowTitle("University GUI")
-        self.setBaseSize(500, 500)
+        self.setMaximumSize(800, 800)
 
-        self.general_layout = QVBoxLayout()
+        self.general_layout = QHBoxLayout()
         self.centralWidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralWidget)
         self.centralWidget.setLayout(self.general_layout)
 
-        self._init_top()
-        self._init_bottom()
+        self._init_left()
+        self._init_right()
 
-    def _init_top(self):
+    def _init_left(self):
 
-        self.button_layout = QGridLayout()
+        self.layout = QVBoxLayout()
 
-        self.queries = QComboBox()
-        self.queries.setMaximumWidth(10 * max([len(s) for s in self.keys]))
-        for table_name in self.tables:
-            self.queries.addItem(table_name)
+        self.entities = QComboBox()
+        self.entities.setFixedWidth(150)
+        self.filter = QComboBox()
+        self.filter.setFixedWidth(150)
+        self.objects = QListWidget()
+        self.objects.setFixedWidth(150)
 
-        for query_name in self.additional_queries.keys():
-            self.queries.addItem(query_name)
+        self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.filter, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.objects, QtCore.Qt.AlignTop)
 
-        self.execute = QPushButton("Execute")
-        self.execute.setFixedWidth(100)
-        self.execute.clicked.connect(self.execute_query)
+        # signals
+        #self.objects.clicked.connect(self.element_clicked)
 
-        self.button_layout.addWidget(self.queries, 0, 0, QtCore.Qt.AlignLeft)
-        self.button_layout.addWidget(self.execute, 0, 1, QtCore.Qt.AlignRight)
-        self.general_layout.addLayout(self.button_layout)
+        self.general_layout.addLayout(self.layout)
 
-    def _init_bottom(self):
+    def _init_right(self):
 
         self.table = QTableWidget(self)  # Создаём таблицу
-        self.table.cellChanged.connect(self.changed_item)
+
+        # signals
+        # self.table.cellChanged.connect(self.changed_item)
+
         self.general_layout.addWidget(self.table)
 
     def make_request(self, button_name):
@@ -79,8 +77,9 @@ class ORMUniversityApplication(QtWidgets.QMainWindow):
 
         return result
 
-    def print_result(self, result: pd.DataFrame):
+    def print_result(self):
 
+        result = {}
         # disconnect from table
         self.table.cellChanged.disconnect(self.changed_item)
 
@@ -104,41 +103,40 @@ class ORMUniversityApplication(QtWidgets.QMainWindow):
         # reconnect to table
         self.table.cellChanged.connect(self.changed_item)
 
-    # signal
-    def execute_query(self):
+    # # signal
+    # def execute_query(self):
+    #
+    #     button_name = self.queries.currentText()
+    #     try:
+    #         if button_name in self.tables:
+    #             self.current_table = button_name
+    #
+    #         result = self.make_request(button_name)
+    #         self.print_result(result)
+    #     except ...:
+    #         ORMApplication.error("Error while trying to execute query", "fuck", "Try select another query")
 
-        button_name = self.queries.currentText()
-        try:
-            if button_name in self.tables:
-                self.current_table = button_name
+    # def changed_item(self, row, col):
+    #
+    #     if self.current_table:
+    #
+    #         id_col_name = self.table.horizontalHeaderItem(0).text()
+    #         id_value = self.table.item(row, 0).text()
+    #         col_name = self.table.horizontalHeaderItem(col).text()
+    #         new_value = self.table.item(row, col).text()
+    #         query = f"UPDATE {self.current_table} SET {col_name} = {new_value} WHERE {id_col_name} = {id_value}"
+    #         try:
+    #             self.db.execute(query)
+    #             result = self.db.select_all(self.current_table)
+    #             self.print_result(result)
+    #         except ...:
+    #             ORMApplication.error("Error", "Error", "Error")
 
-            result = self.make_request(button_name)
-            self.print_result(result)
-        except pymysql.err.ProgrammingError as e:
-            GUIApplication.error("Error while trying to execute query", str(e), "Try select another query")
-
-    def changed_item(self, row, col):
-
-        if self.current_table:
-
-            id_col_name = self.table.horizontalHeaderItem(0).text()
-            id_value = self.table.item(row, 0).text()
-            col_name = self.table.horizontalHeaderItem(col).text()
-            new_value = self.table.item(row, col).text()
-            query = f"UPDATE {self.current_table} SET {col_name} = {new_value} WHERE {id_col_name} = {id_value}"
-            try:
-                self.db.execute(query)
-                result = self.db.select_all(self.current_table)
-                self.print_result(result)
-
-            except pymysql.err.ProgrammingError as e:
-                GUIApplication.error("Error while trying to update table", str(e), "Error")
-
-            except pymysql.err.IntegrityError as e:
-                GUIApplication.error("Error while trying to update table, trouble with foreign keys", str(e), "Error")
-
-            except:
-                GUIApplication.error("Error", "Error", "Error")
+    def element_clicked(self, item):
+        self.table.setColumnCount(1)
+        self.table.setRowCount(1)
+        self.table.setItem(0, 0, QTableWidgetItem(str(25)))
+        print('click -> {}'.format(item.data()))
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):
