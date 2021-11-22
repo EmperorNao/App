@@ -3,6 +3,7 @@ from db.config import Config
 from db.db import Database
 from apps.console import ConsoleApplication
 from apps.gui import GUIApplication
+from apps.orm.orm import ORMApplication
 from PyQt5 import QtWidgets
 import pymysql
 
@@ -47,16 +48,24 @@ if __name__ == "__main__":
 
                }
 
-    if len(sys.argv) > 1 and sys.argv[1] == "console":
-        app = ConsoleApplication(database, tables, queries)
-        app.run()
+    if len(sys.argv) > 1:
 
-    elif len(sys.argv) > 1 and sys.argv[1] == "GUI":
+        if sys.argv[1] == "console":
+            app = ConsoleApplication(database, tables, queries)
+            app.run()
 
-        app = QtWidgets.QApplication(sys.argv)
-        model = GUIApplication(database, tables, queries)
-        model.show()
-        sys.exit(app.exec_())
+        elif sys.argv[1] == "GUI":
 
-    else:
-        print("Provide one of arguments:\n'console' - console app\n'GUI' - with graphical interface")
+            app = QtWidgets.QApplication(sys.argv)
+            model = GUIApplication(database, tables, queries)
+            model.showMaximized()
+            sys.exit(app.exec_())
+
+        elif sys.argv[1] == "orm":
+
+            app = QtWidgets.QApplication(sys.argv)
+            model = ORMApplication()
+            model.showMaximized()
+            sys.exit(app.exec_())
+
+    print("Provide one of arguments:\n'console' - console app\n'GUI' - with graphical interface")
