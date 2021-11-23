@@ -12,29 +12,30 @@ from PyQt5.QtWidgets import QPushButton
 from sqlalchemy import create_engine
 
 
-from .university_objects import *
+from apps.orm.university_objects import *
 import inspect
 
 
 class ORMApplication(QtWidgets.QMainWindow):
 
-    def __init__(self, echo=True):
+    def __init__(self, config, echo=True):
         super().__init__()
 
         # model part
-        self.engine = create_engine("mysql+pymysql://root:password@localhost:3306/university", echo=echo, future=True)
+        self.engine = create_engine(f"mysql+pymysql://{config['user']}:{config['password']}@"
+                                    f"{config['host']}/{config['database']}", echo=echo, future=True)
+
         self.session = sessionmaker(bind=self.engine)()
+        self.session.flush()
 
         self.tables = ["Department", "Professor", "StudyGroup", "Student",
                        "TheorySubject", "Audience", "Grade", "Class"]
-
-        self.current_index = -1
 
         self.keys = dict()
         self.objects = []
         # UI part
 
-        self.setWindowTitle("University GUI")
+        self.setWindowTitle("Электронный деканат")
         self.setMaximumSize(800, 800)
 
         self.general_layout = QHBoxLayout()
@@ -47,7 +48,7 @@ class ORMApplication(QtWidgets.QMainWindow):
 
     def _init_left(self):
 
-        self.max_left_width = 200
+        self.max_left_width = 250
         self.layout = QVBoxLayout()
 
         self.entities = QComboBox()
@@ -67,12 +68,16 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.filters, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.new, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.delete, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.list, QtCore.Qt.AlignTop)
 
         # signals
         self.list.clicked.connect(self.element_clicked)
         self.entities.textActivated.connect(self.text_selected)
         self.filters.textActivated.connect(self.text_selected)
+        self.new.clicked.connect(self.new_object)
+        self.delete.clicked.connect(self.delete_object)
 
         self.general_layout.addLayout(self.layout)
         self.update_left()
@@ -101,12 +106,46 @@ class ORMApplication(QtWidgets.QMainWindow):
     def update_left(self):
 
         self.filters.clear()
-        current = self.entities.currentText()
+        current = self.get_current_table()
         attributes = class_to_columns(current)
         for a in attributes:
             self.filters.addItem(a)
 
         self.update_list()
+
+    def get_current_table(self):
+
+        return self.entities.currentText()
+
+    def get_current_filter(self):
+
+        return self.filters.currentText()
+
+    def next_key(self):
+
+        return max([el.id for el in self.objects] + [-1]) + 1
+
+    def new_object(self):
+
+        class Temp:
+            def __init__(self, str):
+                self.str = str
+            def data(self):
+                return self.str
+
+        table = self.get_current_table()
+        filter = self.get_current_filter()
+        obj = OrmFactory(table)()
+        obj.id = self.next_key()
+        self.objects.append(obj)
+        self.keys[obj.id] = len(self.keys.keys())
+        self.list.addItem(str(obj.id) + ": " + str(getattr(obj, filter)))
+        self.element_clicked(Temp(str(obj.id) + ": " + str(getattr(obj, filter))))
+        self.session.add(obj)
+
+    def delete_object(self):
+
+        pass
 
     def make_request(self, button_name):
 
@@ -152,6 +191,15 @@ class ORMApplication(QtWidgets.QMainWindow):
         else:
             self.update_list()
 
+    def changed_item(self, row, col):
+
+        if self.current_table:
+
+            id_value = self.table.item(row, 0).text()
+            col_name = self.table.horizontalHeaderItem(col).text()
+            new_value = self.table.item(row, col).text()
+            pass
+
     def element_clicked(self, item):
 
         id = int(item.data().split(": ")[0])
@@ -159,7 +207,7 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         result = {}
         # disconnect from table
-        self.table.cellChanged.disconnect(self.element_clicked)
+        #self.table.cellChanged.disconnect(self.element_clicked)
 
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
@@ -181,7 +229,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.table.resizeColumnsToContents()
 
         # reconnect to table
-        self.table.cellChanged.connect(self.element_clicked)
+        #self.table.cellChanged.connect(self.element_clicked)
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):

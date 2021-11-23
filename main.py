@@ -64,7 +64,7 @@ if __name__ == "__main__":
         elif sys.argv[1] == "orm":
 
             app = QtWidgets.QApplication(sys.argv)
-            model = ORMApplication()
+            model = ORMApplication(Config(host='localhost:3306', db_name=database_name).get_settings())
             model.showMaximized()
             sys.exit(app.exec_())
 

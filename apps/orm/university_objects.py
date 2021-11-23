@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Sequence
 from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
 
@@ -7,14 +7,14 @@ Base = declarative_base()
 class Department(Base):
     __tablename__ = "department"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String, nullable=False)
 
 
 class Professor(Base):
     __tablename__ = "professor"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     department_id = Column(Integer, ForeignKey('department.id'))
     age = Column(Integer, nullable=False)
     fcs = Column(String, nullable=False)
@@ -25,7 +25,7 @@ class Professor(Base):
 class StudyGroup(Base):
     __tablename__ = "study_group"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     department_id = Column(Integer, ForeignKey('department.id'))
     title = Column(String, nullable=False)
     spec_code = Column(String, nullable=False)
@@ -34,7 +34,7 @@ class StudyGroup(Base):
 class Student(Base):
     __tablename__ = "student"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     study_group_id = Column(Integer, ForeignKey('study_group_id.id'))
     fcs = Column(String, nullable=False)
     age = Column(Integer, nullable=False)
@@ -43,14 +43,14 @@ class Student(Base):
 class TheorySubject(Base):
     __tablename__ = "theory_subject"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     subject_name = Column(String, nullable=False)
 
 
 class Audience(Base):
     __tablename__ = "audience"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
     floor = Column(Integer, nullable=False)
 
@@ -58,7 +58,7 @@ class Audience(Base):
 class Grade(Base):
     __tablename__ = "grade"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     subject_id = Column(Integer, ForeignKey('theory_subject.id'), nullable=False)
     student_id = Column(Integer, ForeignKey('student.id'), nullable=False)
     professor_id = Column(Integer, ForeignKey('professor.id'))
@@ -68,7 +68,7 @@ class Grade(Base):
 class Class(Base):
     __tablename__ = "class"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     professor_id = Column(Integer, ForeignKey('professor.id'))
     subject_id = Column(Integer, ForeignKey('theory_subject.id'), nullable=False)
     group_id = Column(Integer, ForeignKey('study_group.id'), nullable=False)
