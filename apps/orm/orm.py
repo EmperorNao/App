@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QListWidget
+from PyQt5.QtWidgets import QPushButton
 from sqlalchemy import create_engine
 
 
@@ -27,7 +28,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.tables = ["Department", "Professor", "StudyGroup", "Student",
                        "TheorySubject", "Audience", "Grade", "Class"]
 
-        self.current = -1
+        self.current_index = -1
 
         self.keys = dict()
         self.objects = []
@@ -46,19 +47,23 @@ class ORMApplication(QtWidgets.QMainWindow):
 
     def _init_left(self):
 
+        self.max_left_width = 200
         self.layout = QVBoxLayout()
 
         self.entities = QComboBox()
-        self.entities.setFixedWidth(150)
+        self.entities.setFixedWidth(self.max_left_width)
 
         for table in self.tables:
             self.entities.addItem(table)
 
         self.filters = QComboBox()
-        self.filters.setFixedWidth(150)
+        self.filters.setFixedWidth(self.max_left_width)
 
         self.list = QListWidget()
-        self.list.setFixedWidth(150)
+        self.list.setFixedWidth(self.max_left_width)
+
+        self.new = QPushButton("Создать объект")
+        self.delete = QPushButton("Удалить объект")
 
         self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.filters, QtCore.Qt.AlignTop)
@@ -79,7 +84,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         # signals
         # self.table.cellChanged.connect(self.changed_item)
 
-        self.general_layout.addWidget(self.table)
+        self.general_layout.addWidget(self.table, QtCore.Qt.AlignCenter)
 
     def update_list(self):
 
@@ -140,35 +145,6 @@ class ORMApplication(QtWidgets.QMainWindow):
         # reconnect to table
         self.table.cellChanged.connect(self.changed_item)
 
-    # # signal
-    # def execute_query(self):
-    #
-    #     button_name = self.queries.currentText()
-    #     try:
-    #         if button_name in self.tables:
-    #             self.current_table = button_name
-    #
-    #         result = self.make_request(button_name)
-    #         self.print_result(result)
-    #     except ...:
-    #         ORMApplication.error("Error while trying to execute query", "fuck", "Try select another query")
-
-    # def changed_item(self, row, col):
-    #
-    #     if self.current_table:
-    #
-    #         id_col_name = self.table.horizontalHeaderItem(0).text()
-    #         id_value = self.table.item(row, 0).text()
-    #         col_name = self.table.horizontalHeaderItem(col).text()
-    #         new_value = self.table.item(row, col).text()
-    #         query = f"UPDATE {self.current_table} SET {col_name} = {new_value} WHERE {id_col_name} = {id_value}"
-    #         try:
-    #             self.db.execute(query)
-    #             result = self.db.select_all(self.current_table)
-    #             self.print_result(result)
-    #         except ...:
-    #             ORMApplication.error("Error", "Error", "Error")
-
     def text_selected(self, s):
 
         if s in self.tables:
@@ -183,7 +159,7 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         result = {}
         # disconnect from table
-        #self.table.cellChanged.disconnect(self.element_clicked)
+        self.table.cellChanged.disconnect(self.element_clicked)
 
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
@@ -193,7 +169,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.table.setColumnCount(1)
         self.table.setRowCount(len(attributes))
 
-        #self.table.setHorizontalHeaderLabels()
+        self.table.setHorizontalHeaderLabels(["Значения"])
         self.table.setVerticalHeaderLabels(attributes)
         #for i in range(0, len(columns)):
         #    self.table.horizontalHeaderItem(i).setTextAlignment(Qt.AlignLeft)
@@ -205,9 +181,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.table.resizeColumnsToContents()
 
         # reconnect to table
-        #self.table.cellChanged.connect(self.element_clicked)
-
-
+        self.table.cellChanged.connect(self.element_clicked)
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):
