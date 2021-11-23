@@ -24,8 +24,8 @@ class ORMApplication(QtWidgets.QMainWindow):
         # model part
         self.engine = create_engine(f"mysql+pymysql://{config['user']}:{config['password']}@"
                                     f"{config['host']}/{config['database']}", echo=echo, future=True)
-
         self.session = sessionmaker(bind=self.engine)()
+
         self.session.flush()
 
         self.tables = ["Department", "Professor", "StudyGroup", "Student",
@@ -63,12 +63,14 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.list = QListWidget()
         self.list.setFixedWidth(self.max_left_width)
 
-        self.new = QPushButton("Создать объект")
+        self.new = QPushButton("Создать пустой объект")
+        self.update_btn = QPushButton("Подтвердить создание")
         self.delete = QPushButton("Удалить объект")
 
         self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.filters, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.new, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.update_btn, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.delete, QtCore.Qt.AlignTop)
         self.layout.addWidget(self.list, QtCore.Qt.AlignTop)
 
@@ -77,6 +79,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.entities.textActivated.connect(self.text_selected)
         self.filters.textActivated.connect(self.text_selected)
         self.new.clicked.connect(self.new_object)
+        self.update_btn.clicked.connect(self.update)
         self.delete.clicked.connect(self.delete_object)
 
         self.general_layout.addLayout(self.layout)
@@ -85,9 +88,7 @@ class ORMApplication(QtWidgets.QMainWindow):
     def _init_right(self):
 
         self.table = QTableWidget(self)  # Создаём таблицу
-
-        # signals
-        # self.table.cellChanged.connect(self.changed_item)
+        self.table.cellChanged.connect(self.changed_item)
 
         self.general_layout.addWidget(self.table, QtCore.Qt.AlignCenter)
 
@@ -137,52 +138,26 @@ class ORMApplication(QtWidgets.QMainWindow):
         filter = self.get_current_filter()
         obj = OrmFactory(table)()
         obj.id = self.next_key()
+        print(obj.id)
         self.objects.append(obj)
         self.keys[obj.id] = len(self.keys.keys())
         self.list.addItem(str(obj.id) + ": " + str(getattr(obj, filter)))
-        self.element_clicked(Temp(str(obj.id) + ": " + str(getattr(obj, filter))))
-        self.session.add(obj)
+        self.list.setCurrentRow(len(self.keys) - 1)
+
+    def update(self):
+
+        id_value = self.table.item(0, 0).text()
+        index = self.keys[int(id_value)]
+        obj = self.objects[index]
+        try:
+            self.session.add(obj)
+            self.session.commit()
+        except BaseException as e:
+            ORMApplication.error("Ошибка при добавлении", str(e), "Ошибка")
 
     def delete_object(self):
 
         pass
-
-    def make_request(self, button_name):
-
-        result = {}
-        request = button_name
-        if request in self.tables:
-            result = self.db.select_all(request)
-        elif request in self.additional_queries.keys():
-            result = self.db.execute(self.additional_queries[request])
-
-        return result
-
-    def print_result(self):
-
-        result = {}
-        # disconnect from table
-        self.table.cellChanged.disconnect(self.changed_item)
-
-        self.table.setColumnCount(0)
-        self.table.setRowCount(0)
-
-        columns = result.columns
-        self.table.setColumnCount(len(columns))
-        self.table.setRowCount(result.shape[0])
-
-        self.table.setHorizontalHeaderLabels(columns)
-        for i in range(0, len(columns)):
-            self.table.horizontalHeaderItem(i).setTextAlignment(Qt.AlignLeft)
-
-        for i, row in result.iterrows():
-            for j, col in enumerate(columns):
-                self.table.setItem(i, j, QTableWidgetItem(str(row[col])))
-
-        self.table.resizeColumnsToContents()
-
-        # reconnect to table
-        self.table.cellChanged.connect(self.changed_item)
 
     def text_selected(self, s):
 
@@ -193,12 +168,18 @@ class ORMApplication(QtWidgets.QMainWindow):
 
     def changed_item(self, row, col):
 
-        if self.current_table:
+        self.table.cellChanged.disconnect(self.changed_item)
 
-            id_value = self.table.item(row, 0).text()
-            col_name = self.table.horizontalHeaderItem(col).text()
-            new_value = self.table.item(row, col).text()
-            pass
+        id_value = self.table.item(0, 0).text()
+        new_value = self.table.item(row, 0).text()
+        index = self.keys[int(id_value)]
+
+        col_name = self.table.verticalHeaderItem(row).text()
+        self.table.horizontalHeader()
+
+        setattr(self.objects[index], col_name, new_value)
+
+        self.table.cellChanged.connect(self.changed_item)
 
     def element_clicked(self, item):
 
@@ -209,6 +190,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         # disconnect from table
         #self.table.cellChanged.disconnect(self.element_clicked)
 
+        self.table.cellChanged.disconnect(self.changed_item)
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
 
@@ -227,6 +209,7 @@ class ORMApplication(QtWidgets.QMainWindow):
                 self.table.setItem(i, j, QTableWidgetItem(str(getattr(obj, attributes[i]))))
 
         self.table.resizeColumnsToContents()
+        self.table.cellChanged.connect(self.changed_item)
 
         # reconnect to table
         #self.table.cellChanged.connect(self.element_clicked)
