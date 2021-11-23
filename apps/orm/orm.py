@@ -22,197 +22,119 @@ class ORMApplication(QtWidgets.QMainWindow):
         super().__init__()
 
         # model part
+        self.student_id = dict()
+        # dict of dicts: student.id -> subject.id -> grade
+
+        # database part part
         self.engine = create_engine(f"mysql+pymysql://{config['user']}:{config['password']}@"
                                     f"{config['host']}/{config['database']}", echo=echo, future=True)
         self.session = sessionmaker(bind=self.engine)()
 
-        self.session.flush()
-
-        self.tables = ["Department", "Professor", "StudyGroup", "Student",
-                       "TheorySubject", "Audience", "Grade", "Class"]
-
-        self.keys = dict()
-        self.objects = []
         # UI part
-
         self.setWindowTitle("Электронный деканат")
-        self.setMaximumSize(800, 800)
+        self.setMaximumSize(600, 600)
 
-        self.general_layout = QHBoxLayout()
+        self.general_layout = QVBoxLayout()
         self.centralWidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralWidget)
         self.centralWidget.setLayout(self.general_layout)
 
-        self._init_left()
-        self._init_right()
+        self._init_bottom()
+        self._init_top()
 
-    def _init_left(self):
+    def _init_top(self):
 
-        self.max_left_width = 250
-        self.layout = QVBoxLayout()
+        self.top_layout = QHBoxLayout()
 
-        self.entities = QComboBox()
-        self.entities.setFixedWidth(self.max_left_width)
+        self.department_box = QComboBox()
+        self._init_department()
+        self.group_box = QComboBox()
+        self._init_group()
 
-        for table in self.tables:
-            self.entities.addItem(table)
+        self.plot_grades()
 
-        self.filters = QComboBox()
-        self.filters.setFixedWidth(self.max_left_width)
-
-        self.list = QListWidget()
-        self.list.setFixedWidth(self.max_left_width)
-
-        self.new = QPushButton("Создать пустой объект")
         self.update_btn = QPushButton("Подтвердить изменения")
-        self.delete = QPushButton("Удалить объект")
 
-        self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.filters, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.new, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.update_btn, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.delete, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.list, QtCore.Qt.AlignTop)
+        self.top_layout.addWidget(self.department_box, QtCore.Qt.AlignLeft)
+        self.top_layout.addWidget(self.group_box, QtCore.Qt.AlignLeft)
+        self.top_layout.addWidget(self.update_btn, QtCore.Qt.AlignLeft)
 
         # signals
-        self.list.clicked.connect(self.element_clicked)
-        self.entities.textActivated.connect(self.text_selected)
-        self.filters.textActivated.connect(self.text_selected)
-        self.new.clicked.connect(self.new_object)
+        self.department_box.currentTextChanged.connect(self.update_department)
+        self.group_box.currentTextChanged.connect(self.update_group)
         self.update_btn.clicked.connect(self.update)
-        self.delete.clicked.connect(self.delete_object)
 
-        self.general_layout.addLayout(self.layout)
-        self.update_left()
+        self.general_layout.addLayout(self.top_layout)
 
-    def _init_right(self):
+    def _init_bottom(self):
 
-        self.table = QTableWidget(self)  # Создаём таблицу
-        self.table.cellChanged.connect(self.changed_item)
-
+        self.table = QTableWidget(self)
+        self.table.cellChanged.connect(self.change_grade)
         self.general_layout.addWidget(self.table, QtCore.Qt.AlignCenter)
 
-    def update_list(self):
+    def _init_department(self):
 
-        current = self.entities.currentText()
-        self.list.clear()
-        self.keys = dict()
-        self.objects = []
-        filter = self.filters.currentText()
-        for index, instance in enumerate(self.session.query(OrmFactory(current))):
-            self.list.addItem(str(instance.id) + ": " + str(getattr(instance, filter)))
-            self.objects.append(instance)
-            self.keys[instance.id] = index
+        self.department_box.clear()
+        departments = self.session.query(Department.id, Department.title).all()
+        for id, dep in departments:
+            self.department_box.addItem(str(id) + ": " + dep)
 
-    def update_left(self):
+    def _init_group(self):
 
-        self.filters.clear()
-        current = self.get_current_table()
-        attributes = class_to_columns(current)
-        for a in attributes:
-            self.filters.addItem(a)
+        self.group_box.clear()
+        department_id = self.get_current_department().split(": ")[0]
+        groups = self.session.query(StudyGroup.id, StudyGroup.title).filter_by(department_id=department_id).all()
+        for id, group in groups:
+            self.group_box.addItem(str(id) + ": " + group)
 
-        self.update_list()
+    def get_current_group(self):
 
-    def get_current_table(self):
+        return self.group_box.currentText()
 
-        return self.entities.currentText()
+    def get_current_department(self):
 
-    def get_current_filter(self):
-
-        return self.filters.currentText()
+        return self.department_box.currentText()
 
     def next_key(self):
 
         return max([el.id for el in self.objects] + [-1]) + 1
 
-    def new_object(self):
+    def plot_grades(self):
 
-        class Temp:
-            def __init__(self, str):
-                self.str = str
-            def data(self):
-                return self.str
+        # clear grades
+        pass
 
-        table = self.get_current_table()
-        filter = self.get_current_filter()
-        obj = OrmFactory(table)()
-        obj.id = self.next_key()
-        print(obj.id)
-        self.objects.append(obj)
-        self.keys[obj.id] = len(self.keys.keys())
-        self.list.addItem(str(obj.id) + ": " + str(getattr(obj, filter)))
-        self.list.setCurrentRow(len(self.keys) - 1)
+    def update_department(self, s):
+
+        self._init_group()
+
+    def update_group(self, s):
+
+        self.plot_grades()
 
     def update(self):
 
-        id_value = self.table.item(0, 0).text()
-        index = self.keys[int(id_value)]
-        obj = self.objects[index]
         try:
-            self.session.add(obj)
             self.session.commit()
         except BaseException as e:
-            ORMApplication.error("Ошибка при добавлении", str(e), "Ошибка")
+            ORMApplication.error("Ошибка во время попытки произвести обновление", str(e), "Ошибка")
 
-    def delete_object(self):
+    def change_grade(self, row, col):
 
         pass
+        # self.table.cellChanged.disconnect(self.changed_item)
+        #
+        # id_value = self.table.item(0, 0).text()
+        # new_value = self.table.item(row, 0).text()
+        # index = self.keys[int(id_value)]
+        #
+        # col_name = self.table.verticalHeaderItem(row).text()
+        # self.table.horizontalHeader()
+        #
+        # setattr(self.objects[index], col_name, new_value)
+        #
+        # self.table.cellChanged.connect(self.changed_item)
 
-    def text_selected(self, s):
-
-        if s in self.tables:
-            self.update_left()
-        else:
-            self.update_list()
-
-    def changed_item(self, row, col):
-
-        self.table.cellChanged.disconnect(self.changed_item)
-
-        id_value = self.table.item(0, 0).text()
-        new_value = self.table.item(row, 0).text()
-        index = self.keys[int(id_value)]
-
-        col_name = self.table.verticalHeaderItem(row).text()
-        self.table.horizontalHeader()
-
-        setattr(self.objects[index], col_name, new_value)
-
-        self.table.cellChanged.connect(self.changed_item)
-
-    def element_clicked(self, item):
-
-        id = int(item.data().split(": ")[0])
-        obj = self.objects[self.keys[id]]
-
-        result = {}
-        # disconnect from table
-        #self.table.cellChanged.disconnect(self.element_clicked)
-
-        self.table.cellChanged.disconnect(self.changed_item)
-        self.table.setColumnCount(0)
-        self.table.setRowCount(0)
-
-        #columns = ["Атрибуты", "Значения"]
-        attributes = ["id"] + class_to_columns(self.entities.currentText())
-        self.table.setColumnCount(1)
-        self.table.setRowCount(len(attributes))
-
-        self.table.setHorizontalHeaderLabels(["Значения"])
-        self.table.setVerticalHeaderLabels(attributes)
-        #for i in range(0, len(columns)):
-        #    self.table.horizontalHeaderItem(i).setTextAlignment(Qt.AlignLeft)
-
-        for i, row in enumerate(attributes):
-            for j, col in enumerate(["Значение"]):
-                self.table.setItem(i, j, QTableWidgetItem(str(getattr(obj, attributes[i]))))
-
-        self.table.resizeColumnsToContents()
-        self.table.cellChanged.connect(self.changed_item)
-
-        # reconnect to table
-        #self.table.cellChanged.connect(self.element_clicked)
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):
