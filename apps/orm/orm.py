@@ -64,7 +64,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self.list.setFixedWidth(self.max_left_width)
 
         self.new = QPushButton("Создать пустой объект")
-        self.update_btn = QPushButton("Подтвердить создание")
+        self.update_btn = QPushButton("Подтвердить изменения")
         self.delete = QPushButton("Удалить объект")
 
         self.layout.addWidget(self.entities, QtCore.Qt.AlignTop)
