@@ -32,7 +32,7 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         # UI part
         self.setWindowTitle("Электронный деканат")
-        self.setMaximumSize(600, 600)
+        self.setMaximumSize(1336, 600)
 
         self.general_layout = QVBoxLayout()
         self.centralWidget = QtWidgets.QWidget(self)
@@ -42,6 +42,7 @@ class ORMApplication(QtWidgets.QMainWindow):
         self._init_bottom()
         self._init_top()
 
+    # prepare or reamke qt items
     def _init_top(self):
 
         self.top_layout = QHBoxLayout()
@@ -83,7 +84,8 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         self.group_box.clear()
         department_id = self.get_current_department().split(": ")[0]
-        groups = self.session.query(StudyGroup.id, StudyGroup.title).filter_by(department_id=department_id).all()
+        groups = self.session.query(StudyGroup.id, StudyGroup.title).filter(department_id == department_id).all()
+
         for id, group in groups:
             self.group_box.addItem(str(id) + ": " + group)
 
@@ -97,19 +99,75 @@ class ORMApplication(QtWidgets.QMainWindow):
 
     def next_key(self):
 
-        return max([el.id for el in self.objects] + [-1]) + 1
+        all_id = []
+        for st_id, d in self.student_id.items():
+            for subj_id, grade in d.items():
+                all_id.append(grade.id)
+
+        return max(all_id) + 1
 
     def plot_grades(self):
 
-        # clear grades
+        self.table.cellChanged.disconnect(self.change_grade)
+
+        # clear
+        self.student_id = dict()
+        self.table.setColumnCount(0)
+        self.table.setRowCount(0)
+
+        try:
+            group_id = int(self.get_current_group().split(": ")[0])
+
+            students = self.session.query(Student.id, Student.fcs).filter(Student.study_group_id == group_id).all()
+            subjects = self.session.query(TheorySubject.id, TheorySubject.subject_name).all()
+            grades = self.session.query(Grade).filter(Grade.student_id.in_([st.id for st in students])).all()
+
+            for grade in grades:
+
+                if grade.student_id not in self.student_id.keys():
+                    self.student_id[grade.student_id] = dict()
+
+                if grade.subject_id not in self.student_id[grade.student_id].keys():
+                    self.student_id[grade.student_id][grade.subject_id] = grade
+
+            self.table.setColumnCount(len(subjects))
+            self.table.setRowCount(len(students))
+
+            self.table.setHorizontalHeaderLabels([str(subjects[i][0]) + ": "
+                                                + subjects[i][1] for i in range(0, len(subjects))])
+            self.table.setVerticalHeaderLabels([str(students[i][0]) + ": "
+                                              + students[i][1] for i in range(0, len(students))])
+
+            for i, st in enumerate(students):
+                st_id, student = st[0], st[1]
+
+                for j, subj in enumerate(subjects):
+                    subj_id, subject = subj[0], subj[1]
+
+                    grade = "-"
+                    if st_id in self.student_id.keys() and subj_id in self.student_id[st_id].keys():
+                        grade = str(self.student_id[st_id][subj_id].grade_value)
+
+                    self.table.setItem(i, j, QTableWidgetItem(str(grade)))
+
+            self.table.resizeColumnsToContents()
+        except:
+            pass
+
+        # reconnect to table
+        self.table.cellChanged.connect(self.change_grade)
+
         pass
 
+    # signals
     def update_department(self, s):
 
+        self.update()
         self._init_group()
 
     def update_group(self, s):
 
+        self.update()
         self.plot_grades()
 
     def update(self):
@@ -117,23 +175,32 @@ class ORMApplication(QtWidgets.QMainWindow):
         try:
             self.session.commit()
         except BaseException as e:
+            self.session.rollback()
             ORMApplication.error("Ошибка во время попытки произвести обновление", str(e), "Ошибка")
 
     def change_grade(self, row, col):
 
-        pass
-        # self.table.cellChanged.disconnect(self.changed_item)
-        #
-        # id_value = self.table.item(0, 0).text()
-        # new_value = self.table.item(row, 0).text()
-        # index = self.keys[int(id_value)]
-        #
-        # col_name = self.table.verticalHeaderItem(row).text()
-        # self.table.horizontalHeader()
-        #
-        # setattr(self.objects[index], col_name, new_value)
-        #
-        # self.table.cellChanged.connect(self.changed_item)
+        subj_id = int(self.table.horizontalHeaderItem(col).text().split(": ")[0])
+        st_id = int(self.table.verticalHeaderItem(row).text().split(": ")[0])
+        new_value = self.table.item(row, col).text()
+
+        if st_id not in self.student_id.keys():
+            self.student_id[st_id] = dict()
+
+        try:
+            if subj_id not in self.student_id[st_id].keys():
+                grade = Grade()
+                grade.id = self.next_key()
+                grade.subject_id = subj_id
+                grade.student_id = st_id
+
+                self.student_id[st_id][subj_id] = grade
+
+            self.student_id[st_id][subj_id].grade_value = int(new_value)
+            self.session.add(self.student_id[st_id][subj_id])
+
+        except BaseException as e:
+            ORMApplication.error("Введена неверная оценка", str(e), "Ошибка")
 
 
     @staticmethod
