@@ -1,19 +1,22 @@
+import os
+
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QTableWidget
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QListWidget
 from PyQt5.QtWidgets import QPushButton
 from sqlalchemy import create_engine
 
-
 from apps.orm.university_objects import *
-import inspect
+from alembic.config import Config
+from alembic import command
+
+import json
+
 
 
 class ORMApplication(QtWidgets.QMainWindow):
@@ -23,15 +26,17 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         # model part
         self.student_id = dict()
+        self.backup_name = r".\backup\backup.json"
         # dict of dicts: student.id -> subject.id -> grade
 
         # database part part
         self.engine = create_engine(f"mysql+pymysql://{config['user']}:{config['password']}@"
                                     f"{config['host']}/{config['database']}", echo=echo, future=True)
         self.session = sessionmaker(bind=self.engine)()
+        self.config = Config("alembic.ini")
 
         # UI part
-        self.setWindowTitle("Электронный деканат")
+        self.setWindowTitle("Электронная ведомость")
         self.setMaximumSize(1336, 600)
 
         self.general_layout = QVBoxLayout()
@@ -56,14 +61,24 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         self.update_btn = QPushButton("Подтвердить изменения")
 
+        self.upgrade_db_btn = QPushButton("Создать резервную копию")
+        self.downgrade_db_btn = QPushButton("Загрузить резервную копию")
+        self.update_call_btn = QPushButton("Обновить таблицу")
+
         self.top_layout.addWidget(self.department_box, QtCore.Qt.AlignLeft)
         self.top_layout.addWidget(self.group_box, QtCore.Qt.AlignLeft)
         self.top_layout.addWidget(self.update_btn, QtCore.Qt.AlignLeft)
+        self.top_layout.addWidget(self.upgrade_db_btn, QtCore.Qt.AlignLeft)
+        self.top_layout.addWidget(self.downgrade_db_btn, QtCore.Qt.AlignLeft)
+        self.top_layout.addWidget(self.update_call_btn, QtCore.Qt.AlignLeft)
 
         # signals
         self.department_box.currentTextChanged.connect(self.update_department)
         self.group_box.currentTextChanged.connect(self.update_group)
         self.update_btn.clicked.connect(self.update)
+        self.upgrade_db_btn.clicked.connect(self.upgrade_db)
+        self.downgrade_db_btn.clicked.connect(self.downgrade_db)
+        self.update_call_btn.clicked.connect(self.update_call)
 
         self.general_layout.addLayout(self.top_layout)
 
@@ -99,7 +114,7 @@ class ORMApplication(QtWidgets.QMainWindow):
 
     def next_key(self):
 
-        all_id = []
+        all_id = [0]
         for st_id, d in self.student_id.items():
             for subj_id, grade in d.items():
                 all_id.append(grade.id)
@@ -159,7 +174,46 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         pass
 
+    def update_call(self):
+        self.session.rollback()
+        self.plot_grades()
+
     # signals
+    def upgrade_db(self):
+
+        def row2dict(row):
+            d = {}
+            for column in row.__table__.columns:
+                d[column.name] = str(getattr(row, column.name))
+
+            return d
+
+        result = {}
+        result[Grade.__tablename__] = [row2dict(row) for row in self.session.query(Grade).all()]
+        with open(self.backup_name, 'w') as f:
+            json.dump(result, f, default=str)
+
+        self.plot_grades()
+
+    def downgrade_db(self):
+
+        with open(self.backup_name, 'r') as f:
+            data = json.load(f)
+
+            self.session.query(Grade).delete()
+
+            for record in data[Grade.__tablename__]:
+                for k, v in record.items():
+                    if v == 'None':
+                        record[k] = None
+
+                data_obj = Grade(**record)
+                self.session.add(data_obj)
+
+            self.session.commit()
+
+        self.plot_grades()
+
     def update_department(self, s):
 
         self.update()
@@ -201,7 +255,6 @@ class ORMApplication(QtWidgets.QMainWindow):
 
         except BaseException as e:
             ORMApplication.error("Введена неверная оценка", str(e), "Ошибка")
-
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):

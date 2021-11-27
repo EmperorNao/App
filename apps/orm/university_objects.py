@@ -35,7 +35,7 @@ class Student(Base):
     __tablename__ = "student"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    study_group_id = Column(Integer, ForeignKey('study_group_id.id'))
+    study_group_id = Column(Integer, ForeignKey('study_group.id'))
     fcs = Column(String, nullable=False)
     age = Column(Integer, nullable=False)
 

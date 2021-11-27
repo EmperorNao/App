@@ -8,6 +8,9 @@ from PyQt5 import QtWidgets
 import pymysql
 
 
+TEST_APP = "orm"
+
+
 if __name__ == "__main__":
 
     database_name = "university"
@@ -48,7 +51,27 @@ if __name__ == "__main__":
 
                }
 
-    if len(sys.argv) > 1:
+    if TEST_APP != "":
+
+        if TEST_APP == "console":
+            app = ConsoleApplication(database, tables, queries)
+            app.run()
+
+        elif TEST_APP == "GUI":
+
+            app = QtWidgets.QApplication(sys.argv)
+            model = GUIApplication(database, tables, queries)
+            model.showMaximized()
+            sys.exit(app.exec_())
+
+        elif TEST_APP == "orm":
+
+            app = QtWidgets.QApplication(sys.argv)
+            model = ORMApplication(Config(host='localhost:3306', db_name=database_name).get_settings())
+            model.showMaximized()
+            sys.exit(app.exec_())
+
+    elif len(sys.argv) > 1:
 
         if sys.argv[1] == "console":
             app = ConsoleApplication(database, tables, queries)
@@ -68,4 +91,7 @@ if __name__ == "__main__":
             model.showMaximized()
             sys.exit(app.exec_())
 
-    print("Provide one of arguments:\n'console' - console app\n'GUI' - with graphical interface")
+    print("Provide one of arguments:"
+          "\n'console' - console app"
+          "\n'GUI' - with graphical interface"
+          "\n'orm' - electronic attestation app")
