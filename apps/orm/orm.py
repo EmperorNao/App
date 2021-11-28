@@ -188,29 +188,40 @@ class ORMApplication(QtWidgets.QMainWindow):
 
             return d
 
-        result = {}
-        result[Grade.__tablename__] = [row2dict(row) for row in self.session.query(Grade).all()]
-        with open(self.backup_name, 'w') as f:
-            json.dump(result, f, default=str)
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Файл бэкапа')
+        try:
+
+            result = {}
+            result[Grade.__tablename__] = [row2dict(row) for row in self.session.query(Grade).all()]
+            with open(filename[0], 'w') as f:
+                json.dump(result, f, default=str)
+
+        except:
+
+            ORMApplication.error("Ошибка при попытке сделать бэкап", "Введите другое имя", "Ошибка")
 
         self.plot_grades()
 
     def downgrade_db(self):
 
-        with open(self.backup_name, 'r') as f:
-            data = json.load(f)
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Выберите файл бэкапа')
+        try:
+            with open(filename[0], 'r') as f:
+                data = json.load(f)
 
-            self.session.query(Grade).delete()
+                self.session.query(Grade).delete()
 
-            for record in data[Grade.__tablename__]:
-                for k, v in record.items():
-                    if v == 'None':
-                        record[k] = None
+                for record in data[Grade.__tablename__]:
+                    for k, v in record.items():
+                        if v == 'None':
+                            record[k] = None
 
-                data_obj = Grade(**record)
-                self.session.add(data_obj)
+                    data_obj = Grade(**record)
+                    self.session.add(data_obj)
 
-            self.session.commit()
+                self.session.commit()
+        except:
+            ORMApplication.error("Был выбран некорректный файл", "Выберите другой файл", "Ошибка")
 
         self.plot_grades()
 
@@ -230,7 +241,7 @@ class ORMApplication(QtWidgets.QMainWindow):
             self.session.commit()
         except BaseException as e:
             self.session.rollback()
-            ORMApplication.error("Ошибка во время попытки произвести обновление", str(e), "Ошибка")
+            ORMApplication.error("Введена неверная оценка", "Введите корректное значение в поле оценки", "Ошибка")
 
     def change_grade(self, row, col):
 
@@ -254,7 +265,7 @@ class ORMApplication(QtWidgets.QMainWindow):
             self.session.add(self.student_id[st_id][subj_id])
 
         except BaseException as e:
-            ORMApplication.error("Введена неверная оценка", str(e), "Ошибка")
+            ORMApplication.error("Введена неверная оценка", "Введите корректное значение в поле оценки", "Ошибка")
 
     @staticmethod
     def error(text: str = "", info_text: str = "", title: str = ""):
